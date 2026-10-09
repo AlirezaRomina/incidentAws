@@ -34,7 +34,7 @@ export function promptFor(env: Environment, s: TermState): string {
 export const COMMANDS = [
   'help', 'clear', 'ls', 'cd', 'pwd', 'cat', 'less', 'head', 'tail', 'grep', 'wc', 'top', 'htop', 'ps', 'free', 'df', 'du', 'uptime', 'vmstat', 'iostat', 'dmesg',
   'journalctl', 'systemctl', 'ss', 'netstat', 'ip', 'sysctl', 'date', 'timedatectl', 'chronyc', 'dig', 'nslookup', 'host', 'curl', 'nc', 'ping', 'traceroute',
-  'aws', 'psql', 'ssh', 'exit', 'hostname', 'whoami', 'uname', 'nproc', 'env', 'crontab', 'lsof', 'nginx', 'node', 'history',
+  'aws', 'psql', 'ssh', 'exit', 'ethtool', 'resolvectl', 'hostname', 'whoami', 'uname', 'nproc', 'env', 'crontab', 'lsof', 'nginx', 'node', 'history',
 ];
 
 const HELP = `Investigation shell — simulated, read-only. Pipes work: \`… | grep ERROR | tail -n 20\`
@@ -43,7 +43,7 @@ const HELP = `Investigation shell — simulated, read-only. Pipes work: \`… | 
   Files      ls -lh <dir>   cat / less <file>   head|tail -n N <file>   grep [-i -c -v -E] <pattern> <files>   wc -l
   System     top   ps aux   free -m   df -h   du -sh <dir>/*   uptime   vmstat   iostat -x   dmesg -T
   Services   systemctl status <svc>   systemctl list-units --failed   journalctl -u <svc> -n 50
-  Network    ss -s   ss -tanp   ss -tlnp   netstat -tlnp   ip addr   ip route   sysctl <key>
+  Network    ss -s   ss -tanp   ss -tlnp   netstat -tlnp   ip addr   ip route   sysctl <key>   ethtool -S ens5   resolvectl
              dig <name>   nslookup <name>   curl -v <url>   nc -zv <host> <port>   ping   traceroute
   Time       date   timedatectl   chronyc tracking
   AWS        aws help   (ec2, elbv2, rds, iam, cloudtrail, route53, logs, s3, sts …)
@@ -223,6 +223,42 @@ function dispatch(env: Environment, state: TermState, ctx: Ctx, cmdline: string)
       if (r.db && !r.oneShot) return { output: r.output, state: { ...state, mode: 'psql', db: r.db.instanceId } };
       return ok(r.output);
     }
+    case 'ethtool': {
+      const dev = args.find(a => !a.startsWith('-'));
+      if (dev && dev !== 'ens5') return ok(`netlink error: no device matches name (offset 24)\nnetlink error: No such device`);
+      if (args.includes('-i')) return ok('driver: ena\nversion: 2.12.0g\nfirmware-version:\nbus-info: 0000:00:05.0\nsupports-statistics: yes');
+      if (args.includes('-S')) {
+        const n = (k: number) => String(1000003 * k + host.ip.length * 7919);
+        return ok(
+          [
+            'NIC statistics:',
+            `     tx_timeout: 0`,
+            `     suspend: 0`,
+            `     resume: 0`,
+            `     wd_expired: 0`,
+            `     interface_up: 1`,
+            `     interface_down: 0`,
+            `     admin_q_pause: 0`,
+            `     bw_in_allowance_exceeded: 0`,
+            `     bw_out_allowance_exceeded: 0`,
+            `     pps_allowance_exceeded: 0`,
+            `     conntrack_allowance_available: 409812`,
+            `     conntrack_allowance_exceeded: 0`,
+            `     linklocal_allowance_exceeded: 0`,
+            `     queue_0_tx_cnt: ${n(41)}`,
+            `     queue_0_tx_bytes: ${n(9011)}`,
+            `     queue_0_rx_cnt: ${n(44)}`,
+            `     queue_0_rx_bytes: ${n(12007)}`,
+            `     queue_1_tx_cnt: ${n(39)}`,
+            `     queue_1_rx_cnt: ${n(43)}`,
+          ].join('\n'),
+        );
+      }
+      return ok('Settings for ens5:\n\tSupported ports: [ ]\n\tSpeed: Unknown!\n\tDuplex: Unknown! (255)\n\tLink detected: yes');
+    }
+    case 'resolvectl':
+      if (args[0] === 'statistics') return ok('DNSSEC supported by current servers: no\n\nTransactions\nCurrent Transactions: 0\n  Total Transactions: 1840221\n\nCache\n  Current Cache Size: 412\n          Cache Hits: 1795318\n        Cache Misses: 44903\n\nDNSSEC Verdicts\n              Secure: 0\n            Insecure: 0\n               Bogus: 0\n       Indeterminate: 0');
+      return ok('Global\n       Protocols: -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported\nresolv.conf mode: uplink\n\nLink 2 (ens5)\n    Current Scopes: DNS\n         Protocols: +DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported\nCurrent DNS Server: 10.0.0.2\n       DNS Servers: 10.0.0.2\n        DNS Domain: ec2.internal');
     case 'mysql':
       return ok('-bash: mysql: command not found\n(checkout-db is PostgreSQL — use psql -h db.internal.shopfast.io -U ops_readonly checkout)');
     case 'redis-cli': {

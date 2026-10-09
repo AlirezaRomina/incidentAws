@@ -67,11 +67,11 @@ const incident: Incident = {
         h,
         '/var/log/checkout-api/app.log',
         spread(env, START - 2 - i * 0.41, 0.2 + i * 0.29, 26, (k, ts) =>
-          JSON.stringify({ level: 40, time: new Date(ts).toISOString(), pid: 2841 + i * 17, hostname: meta.hostname, reqId: `req-${(0x3a1f00 + k * 977 + i * 31).toString(16)}`, msg: 'slow query', durationMs: 2100 + ((k * 397 + i * 211) % 1900), query: ORDERS_Q, route: k % 3 === 0 ? 'POST /api/v1/checkout' : 'GET /api/v1/orders' }),
+          JSON.stringify({ level: 40, time: new Date(ts).toISOString(), pid: env.hosts[h].services['checkout-api'].mainPid, hostname: meta.hostname, reqId: `req-${(0x3a1f00 + k * 977 + i * 31).toString(16)}`, msg: 'slow query', durationMs: 2100 + ((k * 397 + i * 211) % 1900), query: ORDERS_Q, route: k % 3 === 0 ? 'POST /api/v1/checkout' : 'GET /api/v1/orders' }),
         ),
       );
       injectLog(env, h, '/var/log/checkout-api/app.log', [
-        ev(env, START + 0.5, JSON.stringify({ level: 30, time: new Date(env.now - (START + 0.5) * 60000).toISOString(), pid: 2841 + i * 17, hostname: meta.hostname, msg: 'checkout-api v2.14.0 listening on 127.0.0.1:3000' })),
+        ev(env, START + 0.5, JSON.stringify({ level: 30, time: new Date(env.now - (START + 0.5) * 60000).toISOString(), pid: env.hosts[h].services['checkout-api'].mainPid, hostname: meta.hostname, msg: 'checkout-api v2.14.0 listening on 127.0.0.1:3000' })),
       ]);
       for (const h2 of [h]) env.hosts[h2].env.APP_VERSION = '2.14.0';
       env.hosts[h].services['checkout-api'].since = env.hosts[h].services['checkout-api'].since.replace(/; .*$/, '; 47min ago');

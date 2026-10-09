@@ -82,13 +82,13 @@ const CUMULATIVE: Record<string, number> = Object.fromEntries(
 /* ------------------------------------------------------------------ */
 
 function ethtoolStats(seed: number, linklocal: number, busy: boolean): string {
-  const big = (base: number, k: number) => Math.round(base * (1 + ((seed * 7919 + k * 104729) % 1000) / 4000));
+  const big = (base: number, k: number) => Math.round(base * (1 + ((seed * 7919 + k * 104729) % 1000) / 4000)) + ((seed * 48271 + k * 69621) % 99991);
   const q = (i: number) => {
     const tx = big(busy ? 1_840_000_000 : 41_000_000, i + 1);
     const rx = big(busy ? 2_110_000_000 : 52_000_000, i + 7);
     return [
       `     queue_${i}_tx_cnt: ${tx}`,
-      `     queue_${i}_tx_bytes: ${tx * 611}`,
+      `     queue_${i}_tx_bytes: ${tx * 611 + ((seed * 7 + i) * 104723) % 999983}`,
       `     queue_${i}_tx_queue_stop: 0`,
       `     queue_${i}_tx_queue_wakeup: 0`,
       `     queue_${i}_tx_dma_mapping_err: 0`,
@@ -103,7 +103,7 @@ function ethtoolStats(seed: number, linklocal: number, busy: boolean): string {
       `     queue_${i}_tx_missed_tx: 0`,
       `     queue_${i}_tx_unmask_interrupt: ${big(busy ? 912_000_000 : 20_400_000, i + 3)}`,
       `     queue_${i}_rx_cnt: ${rx}`,
-      `     queue_${i}_rx_bytes: ${rx * 734}`,
+      `     queue_${i}_rx_bytes: ${rx * 734 + ((seed * 13 + i) * 92821) % 999979}`,
       `     queue_${i}_rx_rx_copybreak_pkt: ${big(busy ? 1_400_000_000 : 33_000_000, i + 11)}`,
       `     queue_${i}_rx_csum_good: ${rx - 412}`,
       `     queue_${i}_rx_refil_partial: 0`,
@@ -140,7 +140,7 @@ function ethtoolStats(seed: number, linklocal: number, busy: boolean): string {
     `     linklocal_allowance_exceeded: ${linklocal}`,
     ...q(0),
     ...q(1),
-    `     ena_admin_q_aq_completed_cmd: ${3 + (seed % 5) * 0 + 41}`,
+    '     ena_admin_q_aq_completed_cmd: 44',
     '     ena_admin_q_out_of_space: 0',
     '     ena_admin_q_no_completion: 0',
   ].join('\n');
@@ -748,13 +748,13 @@ const incident: Incident = {
     {
       id: 'rc-dns-pps',
       correct: true,
-      text: '2.17.0 removed the app\'s DNS cache and keep-alive; with no OS cache on the AMI each host sends >1,024 DNS packets/s to the VPC resolver at peak, and the ENI\'s link-local limit silently drops the excess.',
+      text: '2.17.0 dropped the app DNS cache and keep-alive; with no OS cache, each host sends >1,024 DNS packets/s at peak and the ENI\'s link-local limit silently drops the excess.',
       explanation: 'ethtool shows linklocal_allowance_exceeded rising only at peak and only since Sunday\'s 2.17.0 deploy; resolved has no cache; the app logs show 5 s lookup stalls and EAI_AGAIN for every hostname, public and private.',
     },
     {
       id: 'rc-resolver',
       partial: true,
-      text: 'The Route 53 Resolver at 10.0.0.2 throttles the checkout instances at peak, dropping DNS queries above its per-instance quota so getaddrinfo fails with EAI_AGAIN.',
+      text: 'The Route 53 Resolver at 10.0.0.2 throttles the checkout instances at peak, dropping DNS queries above its per-instance quota, so getaddrinfo fails with EAI_AGAIN.',
       explanation: 'The mechanism is right, but it misses why: the quota has not changed — our lookup volume did. Without the 2.17.0 change and the missing OS cache, you would "fix" it by asking AWS for a limit that cannot be raised.',
     },
     {
@@ -783,7 +783,7 @@ const incident: Incident = {
     {
       id: 'fx-local-cache',
       kind: 'correct',
-      text: 'Run a local caching resolver on the app AMI (systemd-resolved with Cache=yes and the 127.0.0.53 stub, or dnsmasq/unbound) and restore cacheable-lookup in checkout-api.',
+      text: 'Run a TTL-honouring local DNS cache on the AMI (systemd-resolved Cache=yes with its stub, or dnsmasq) and restore cacheable-lookup in checkout-api.',
       explanation: 'A cache that honours TTLs turns hundreds of lookups per second for the same few names into a handful of upstream queries per TTL. Two layers (app + OS) mean losing one no longer takes you over the limit.',
     },
     {
@@ -795,7 +795,7 @@ const incident: Incident = {
     {
       id: 'fx-rollback',
       kind: 'partial',
-      text: 'Roll checkout-api back to 2.16.2, which still had cacheable-lookup and keep-alive enabled, until a proper fix ships.',
+      text: 'Roll checkout-api back to 2.16.2 (still with cacheable-lookup and keep-alive) via the pipeline, and hold 2.17.x until a proper fix ships.',
       explanation: 'A good immediate mitigation for tonight, but it brings back CHK-1442 and leaves the AMI one dependency removal away from the same outage.',
     },
     {
@@ -807,7 +807,7 @@ const incident: Incident = {
     {
       id: 'fx-retry',
       kind: 'partial',
-      text: 'Wrap PayBridge, SQS and catalog calls in a retry (3 attempts, jittered backoff) on EAI_AGAIN and ENOTFOUND.',
+      text: 'Wrap PayBridge, SQS and catalog calls in a retry (3 attempts, 200 ms jittered backoff) on EAI_AGAIN and ENOTFOUND so lookups get another chance.',
       explanation: 'Fewer user-visible failures, but every retry is more DNS packets against the same limit and each failed attempt already costs 10 s — latency gets worse.',
     },
     {
@@ -831,7 +831,7 @@ const incident: Incident = {
     {
       id: 'fx-threadpool',
       kind: 'harmful',
-      text: 'Set UV_THREADPOOL_SIZE=128 so far more getaddrinfo calls can run in parallel during the peak.',
+      text: 'Set UV_THREADPOOL_SIZE=128 in /etc/checkout-api/env so far more getaddrinfo calls can run in parallel instead of queueing behind 4 threads.',
       explanation: 'More concurrent lookups means more DNS packets per second against the same 1,024 pps allowance — more drops, more 5 s stalls.',
     },
   ],

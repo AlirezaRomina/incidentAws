@@ -793,7 +793,7 @@ EXPORT_TMP_DIR=/var/lib/shopfast-export
     {
       id: 'rc-gp2-burst',
       correct: true,
-      text: 'The PITR restore re-created checkout-db on gp2 200 GiB (600 baseline IOPS). The 01:00 full export burns its 5.4M I/O credits in ~37 min, after which the volume is capped at 600 IOPS until the export ends.',
+      text: 'The PITR restore put checkout-db on gp2 200 GiB (600 IOPS baseline); the 01:00 full export burns its 5.4M I/O credits in ~37 min, then the volume is capped at 600 IOPS.',
       explanation: 'BurstBalance hits 0% at 01:38 every night, IOPS flatten at ~600 while queue depth and latency explode, sessions wait on IO:DataFileRead/WALSync, the export ran in ~1h10m on gp3 but ~4h50m since the restore, and the storage type in RDS/CloudTrail is gp2 while the replica and Terraform say gp3.',
     },
     {
@@ -819,7 +819,7 @@ EXPORT_TMP_DIR=/var/lib/shopfast-export
     },
     {
       id: 'rc-checkpoint',
-      text: 'max_wal_size = 2048MB is too small: checkpoints every 5 min flush gigabytes at night and their fsync stalls (sync up to 14 s) block commits on IO:WALSync.',
+      text: 'max_wal_size = 2048MB is too small for the night write load: checkpoints flush gigabytes every 5 min and their fsync stalls (sync up to 14 s) block commits on IO:WALSync.',
       explanation: 'Checkpoints are timed (every 5 minutes), not WAL-triggered, and the log shows no "checkpoints are occurring too frequently" warnings. They are slower because the disk is throttled — a symptom.',
     },
   ],
@@ -828,7 +828,7 @@ EXPORT_TMP_DIR=/var/lib/shopfast-export
     {
       id: 'fx-gp3',
       kind: 'correct',
-      text: 'Modify checkout-db storage to gp3 with --apply-immediately (at ≥400 GiB you can provision 12,000 IOPS again); the change is online, with no failover.',
+      text: 'Modify checkout-db to gp3 with --apply-immediately (≥400 GiB to provision 12,000 IOPS again); it is an online change with no failover.',
       explanation: 'gp3 has no credit bucket: 3,000 IOPS / 125 MiB/s baseline at any size (more can be provisioned at ≥400 GiB on RDS). The instance stays available during "storage-optimization". Note the 6-hour cooldown between storage modifications, so pick the target size/IOPS deliberately.',
     },
     {
