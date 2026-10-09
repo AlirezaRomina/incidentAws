@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "incident",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5317", "--strictPort"],
+      "port": 5317
+    }
+  ]
+}

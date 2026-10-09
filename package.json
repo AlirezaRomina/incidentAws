@@ -1,0 +1,31 @@
+{
+  "name": "incident",
+  "private": true,
+  "version": "1.0.0",
+  "description": "INCIDENT — an interactive production troubleshooting training game (AWS, Linux, networking, databases).",
+  "type": "module",
+  "scripts": {
+    "start": "npm install --no-audit --no-fund --loglevel=error && vite --port 5317 --open",
+    "dev": "vite --port 5317",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 5318",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vitest": "^2.1.9"
+  }
+}
