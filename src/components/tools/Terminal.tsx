@@ -137,7 +137,7 @@ export function Terminal({ env }: ToolProps) {
             {term.entries.map(e => (
               <Entry key={e.id} e={e} />
             ))}
-            <div className="term-input-row">
+            <div className="term-input-row" data-tour="term-input">
               <span className="term-prompt">{prompt}</span>
               <input
                 ref={inputRef}

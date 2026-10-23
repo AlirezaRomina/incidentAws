@@ -11,6 +11,8 @@ import { ToolView } from '../tools/ToolView';
 import { SubmitWizard } from '../submit/SubmitWizard';
 import { MAX_POINTS } from '../../engine/grading';
 import { setLiveElapsed } from '../../state/timer';
+import { Tour } from '../tutorial/Tour';
+import { HowItWorks } from '../tutorial/HowItWorks';
 
 const MemoToolView = memo(ToolView);
 
@@ -54,7 +56,8 @@ function TimerStat({ incidentId, initial, parMinutes, paused, onFlush }: { incid
 }
 
 export function Workspace({ incident }: { incident: Incident }) {
-  const { get, ensureSession, updateSession, togglePin } = useProgress();
+  const { get, ensureSession, updateSession, togglePin, progress, setTutorialDone } = useProgress();
+  const [howOpen, setHowOpen] = useState(false);
   const env = useMemo(() => createEnvironment(incident), [incident]);
   const [submitting, setSubmitting] = useState(false);
   const [notesOpen, setNotesOpen] = useState(true);
@@ -118,8 +121,7 @@ export function Workspace({ incident }: { incident: Incident }) {
             <h1>{incident.title}</h1>
             <span className={`badge ${d.cls}`}>{d.label}</span>
           </div>
-          <div className="spacer" />
-          <div className="ws-stats">
+          <div className="ws-stats" data-tour="stats">
             <TimerStat incidentId={incident.id} initial={session.elapsedMs} parMinutes={incident.parMinutes} paused={submitting} onFlush={ms => updateSession(incident.id, s => ({ ...s, elapsedMs: Math.max(s.elapsedMs, ms) }))} />
             <div className="stat" title="Hints used (each costs 10% of max score)">
               <Icon name="bulb" size={14} />
@@ -134,15 +136,18 @@ export function Workspace({ incident }: { incident: Incident }) {
               <span className="mono">{MAX_POINTS[incident.difficulty]}</span>
             </div>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={() => setNotesOpen(o => !o)} title="Toggle case notes">
-            <Icon name="note" size={14} /> {notesOpen ? 'Hide notes' : 'Case notes'}
+          <button className="btn btn-ghost btn-sm" onClick={() => setHowOpen(true)} title="How to play, scoring and where cases come from">
+            <Icon name="info" size={14} /> <span className="btn-label">How to play</span>
           </button>
-          <button className="btn btn-primary" onClick={() => setSubmitting(true)}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setNotesOpen(o => !o)} title="Toggle case notes">
+            <Icon name="note" size={14} /> <span className="btn-label">{notesOpen ? 'Hide notes' : 'Case notes'}</span>
+          </button>
+          <button className="btn btn-primary" data-tour="submit" onClick={() => setSubmitting(true)}>
             <Icon name="flag" size={15} /> Submit diagnosis
           </button>
         </header>
 
-        <nav className="ws-rail" aria-label="Investigation tools">
+        <nav className="ws-rail" aria-label="Investigation tools" data-tour="rail">
           {['Incident', 'Observe', 'Infrastructure', 'Security & change'].map(group => (
             <div key={group} className="rail-group">
               <div className="rail-h">{group}</div>
@@ -150,7 +155,7 @@ export function Workspace({ incident }: { incident: Incident }) {
                 const idx = TOOLS.findIndex(x => x.id === t.id);
                 const pins = session.pins.filter(p => p.tool === t.id).length;
                 return (
-                  <button key={t.id} className={`rail-item ${session.tool === t.id ? 'active' : ''}`} onClick={() => setTool(t.id)}>
+                  <button key={t.id} data-tour={`rail-${t.id}`} className={`rail-item ${session.tool === t.id ? 'active' : ''}`} onClick={() => setTool(t.id)}>
                     <Icon name={t.icon} size={16} />
                     <span>{t.label}</span>
                     {pins > 0 && <span className="rail-pins">{pins}</span>}
@@ -172,12 +177,23 @@ export function Workspace({ incident }: { incident: Incident }) {
         </main>
 
         {notesOpen && (
-          <aside className="ws-notes">
+          <aside className="ws-notes" data-tour="notes">
             <CaseNotes incident={incident} env={env} onSubmit={() => setSubmitting(true)} />
           </aside>
         )}
       </div>
       {submitting && <SubmitWizard incident={incident} onClose={() => setSubmitting(false)} />}
+      {!progress.tutorialDone && !submitting && !howOpen && <Tour onTool={setTool} />}
+      {howOpen && (
+        <HowItWorks
+          onClose={() => setHowOpen(false)}
+          onStartTutorial={() => {
+            setNotesOpen(true);
+            setHowOpen(false);
+            setTutorialDone(false);
+          }}
+        />
+      )}
     </IncidentSessionContext.Provider>
   );
 }

@@ -51,6 +51,8 @@ export interface Progress {
   incidents: Record<string, IncidentProgress>;
   createdAt: number;
   seenIntro?: boolean;
+  /** guided tour finished or skipped */
+  tutorialDone?: boolean;
 }
 
 const KEY = 'incident.progress.v1';
@@ -121,6 +123,7 @@ interface Ctx {
   restart: (id: string) => void;
   resetAll: () => void;
   markIntroSeen: () => void;
+  setTutorialDone: (done: boolean) => void;
 }
 
 const ProgressContext = createContext<Ctx | null>(null);
@@ -221,8 +224,9 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const markIntroSeen = useCallback(() => setProgress(p => ({ ...p, seenIntro: true })), []);
+  const setTutorialDone = useCallback((done: boolean) => setProgress(p => ({ ...p, seenIntro: true, tutorialDone: done })), []);
 
-  const value = useMemo(() => ({ progress, get, ensureSession, updateSession, togglePin, submit, restart, resetAll, markIntroSeen }), [progress, get, ensureSession, updateSession, togglePin, submit, restart, resetAll, markIntroSeen]);
+  const value = useMemo(() => ({ progress, get, ensureSession, updateSession, togglePin, submit, restart, resetAll, markIntroSeen, setTutorialDone }), [progress, get, ensureSession, updateSession, togglePin, submit, restart, resetAll, markIntroSeen, setTutorialDone]);
   return <ProgressContext.Provider value={value}>{children}</ProgressContext.Provider>;
 }
 

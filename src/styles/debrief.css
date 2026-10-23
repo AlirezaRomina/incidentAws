@@ -418,3 +418,177 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* tutorial */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+}
+.tour-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 6, 10, 0.66);
+  pointer-events: auto;
+}
+.tour-spot {
+  position: absolute;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(4, 6, 10, 0.62), 0 0 0 2px var(--accent), 0 0 24px rgba(255, 107, 61, 0.45);
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+.tour-card {
+  position: absolute;
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  pointer-events: auto;
+  background: var(--surface-2);
+  border: 1px solid var(--accent-line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-pop);
+  padding: 14px 16px 12px;
+  transition: top 0.25s ease, left 0.25s ease;
+  animation: rise 0.18s ease-out;
+}
+.tour-top {
+  display: flex;
+  align-items: center;
+}
+.tour-card h3 {
+  margin: 4px 0 8px;
+  font-size: 16px;
+}
+.tour-body {
+  color: var(--text-2);
+  font-size: 13.5px;
+}
+.tour-body p {
+  margin: 0 0 8px;
+}
+.tour-list {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+.tour-list li {
+  margin-bottom: 3px;
+}
+.tour-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 4px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  border: 1px dashed var(--accent-line);
+  color: var(--accent-2);
+  font-weight: 600;
+  font-size: 13px;
+}
+.tour-task.done {
+  background: var(--ok-soft);
+  border: 1px solid rgba(62, 207, 142, 0.35);
+  color: var(--ok);
+}
+.tour-progress {
+  display: flex;
+  gap: 4px;
+  margin: 10px 0 8px;
+}
+.tour-progress span {
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--surface-3);
+}
+.tour-progress span.past {
+  background: var(--accent-line);
+}
+.tour-progress span.now {
+  background: var(--accent);
+}
+.tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* how it works */
+.how .lead {
+  font-size: 14.5px;
+  color: var(--text);
+  margin-top: 0;
+}
+.how-steps {
+  padding-left: 20px;
+  color: var(--text-2);
+}
+.how-steps li {
+  margin-bottom: 10px;
+}
+.how-steps b {
+  color: var(--text);
+}
+.how-tip {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--warn-soft);
+  border: 1px solid rgba(245, 184, 75, 0.28);
+  font-size: 13px;
+}
+.how-tip svg {
+  color: var(--warn);
+  margin-top: 2px;
+}
+.how-table td {
+  font-size: 13px;
+}
+.how-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+.how-box {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--surface-0);
+}
+.how-box .eyebrow {
+  margin-bottom: 8px;
+}
+.grade-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.grade-row .gpill {
+  margin-left: 6px;
+}
+.rank-ladder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 12.5px;
+}
+.how-qa h4 {
+  margin: 0 0 6px;
+  font-size: 14.5px;
+}
+.how-qa p {
+  margin: 0 0 8px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+.how-qa + .how-qa {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}

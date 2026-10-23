@@ -32,6 +32,8 @@ Other scripts:
 
 ## How to play
 
+New players get a **guided tutorial** the first time they open a case: a 10-step tour that spotlights each part of the screen and has you open a tool, pin evidence and run a terminal command. You can replay it any time from **How it works** on the board or **How to play** inside a case. Those also explain the scoring and where the cases come from.
+
 1. **Pick an incident** on the board. They go from Beginner to Expert, and each has a par time and a maximum score.
 2. **Read the briefing.** You get a PagerDuty alert and messages from colleagues. It shows symptoms only.
 3. **Investigate.** Use the tool rail (keys `1`–`9` switch tools). Healthy systems are simulated too, so not everything you find is relevant.

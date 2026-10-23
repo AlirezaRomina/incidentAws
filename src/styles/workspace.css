@@ -353,3 +353,26 @@
     display: none;
   }
 }
+
+/* keep the top bar on one line */
+.ws-title {
+  flex: 1;
+}
+.ws-title > * {
+  white-space: nowrap;
+  flex: none;
+}
+.ws-title h1 {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.ws-stats .stat,
+.ws-top .btn {
+  white-space: nowrap;
+  flex: none;
+}
+@media (max-width: 1500px) {
+  .ws-top .btn-ghost .btn-label {
+    display: none;
+  }
+}

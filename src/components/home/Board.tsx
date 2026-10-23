@@ -8,12 +8,18 @@ import { Icon } from '../ui/Icon';
 import { DIFFICULTY } from '../ui/meta';
 import { formatDuration } from '../../engine/time';
 import { Modal } from '../ui/Modal';
+import { HowItWorks } from '../tutorial/HowItWorks';
 
 const LEVELS: Difficulty[] = ['beginner', 'intermediate', 'advanced', 'expert'];
 
 export function Board() {
-  const { progress, get, restart, resetAll, markIntroSeen } = useProgress();
+  const { progress, get, restart, resetAll, markIntroSeen, setTutorialDone } = useProgress();
   const [confirmReset, setConfirmReset] = useState(false);
+  const [howOpen, setHowOpen] = useState(false);
+  const startTutorial = () => {
+    setTutorialDone(false);
+    navigate(`#/play/${INCIDENTS[0].id}`);
+  };
   const all = INCIDENTS.map(i => ({ i, p: get(i.id) }));
   const total = all.reduce((s, { p }) => s + (p.best?.score ?? 0), 0);
   const maxTotal = INCIDENTS.reduce((s, i) => s + MAX_POINTS[i.difficulty], 0);
@@ -36,6 +42,9 @@ export function Board() {
           </div>
         </div>
         <span className="spacer" />
+        <button className="btn btn-sm" onClick={() => setHowOpen(true)}>
+          <Icon name="book" size={14} /> How it works
+        </button>
         <button className="btn btn-ghost btn-sm" onClick={() => setConfirmReset(true)}>
           <Icon name="trash" size={14} /> Reset progress
         </button>
@@ -52,14 +61,11 @@ export function Board() {
               Each incident drops you into ShopFast's AWS environment mid-outage. Nothing tells you the answer: dig through CloudWatch metrics, logs, consoles and a real-feeling terminal (ssh, top, df, ss, dig, curl, psql, aws CLI…). <b>Pin</b> the evidence that matters, then submit your root cause, evidence and fix. You'll be graded and walked through the real technical concepts.
             </p>
             <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  markIntroSeen();
-                  navigate(`#/play/${INCIDENTS[0].id}`);
-                }}
-              >
-                <Icon name="play" size={14} /> Start with incident #1
+              <button className="btn btn-primary" onClick={startTutorial}>
+                <Icon name="play" size={14} /> Start the guided tutorial
+              </button>
+              <button className="btn" onClick={() => setHowOpen(true)}>
+                <Icon name="book" size={14} /> How scoring works
               </button>
               <button className="btn btn-ghost" onClick={markIntroSeen}>
                 Dismiss
@@ -174,6 +180,8 @@ export function Board() {
       <footer className="board-foot small faint">
         Everything runs locally in your browser. Progress is saved in this browser's local storage. All companies, people and data are fictional.
       </footer>
+
+      {howOpen && <HowItWorks onClose={() => setHowOpen(false)} onStartTutorial={startTutorial} />}
 
       {confirmReset && (
         <Modal onClose={() => setConfirmReset(false)} width={460}>

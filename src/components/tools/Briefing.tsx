@@ -15,7 +15,7 @@ export function Briefing({ env, incident, onNavigate }: ToolProps) {
       <ToolHeader title="Incident briefing" sub={`You are the on-call engineer. It is ${human(env.now)}.`} />
       <div className="brief-grid">
         <div className="brief-col">
-          <div className="page-card">
+          <div className="page-card" data-tour="briefing-alert">
             <div className="page-top">
               <span className="page-src">
                 <Icon name="bell" size={14} /> {b.alert.source}

@@ -28,7 +28,7 @@ export function CloudWatch({ env }: ToolProps) {
     <div className="tool">
       <ToolHeader title="CloudWatch" sub="Alarms and metrics for the ShopFast production account. Hover a chart to read values; pin anything that matters." />
 
-      <div className="card" style={{ marginBottom: 20 }}>
+      <div className="card" style={{ marginBottom: 20 }} data-tour="cw-alarms">
         <div className="card-h">
           <h3>
             Alarms{' '}
@@ -82,7 +82,7 @@ export function CloudWatch({ env }: ToolProps) {
             <h2>Dashboard · checkout-prod</h2>
             <span className="small faint">key metrics, last {Math.round((featured[0].series[0].points.length * featured[0].periodMinutes) / 60)}h</span>
           </div>
-          <div className="metric-grid">
+          <div className="metric-grid" data-tour="cw-dashboard">
             {featured.map(m => (
               <MetricCard key={m.id} panel={m} now={env.now} />
             ))}
