@@ -86,7 +86,8 @@ export function finalizeEnvironment(env: Environment): Environment {
 
   // health endpoints report the version actually running
   const version = env.hosts['app-1']?.env.APP_VERSION;
-  if (version) for (const r of env.http) if (r.body) r.body = r.body.replace(/"version":"[\d.]+"/, `"version":"${version}"`);
+  const ours = (src: string) => ['localhost', '127', 'shopfast', '10\\.0'].some(k => src.includes(k));
+  if (version) for (const r of env.http) if (r.body && ours(r.match.source)) r.body = r.body.replace(/"version":"[\d.]+"/, `"version":"${version}"`);
 
   env.logGroups = [...groups.values()].map(g => ({ ...g, events: [...g.events].sort((a, b) => a.ts - b.ts) }));
   env.logGroups.sort((a, b) => a.name.localeCompare(b.name));

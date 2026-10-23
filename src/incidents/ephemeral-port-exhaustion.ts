@@ -32,7 +32,7 @@ const shape = (ts: number) => {
   const dist = Math.min(Math.abs(h - 20), 24 - Math.abs(h - 20));
   return 0.35 + 0.65 * Math.exp(-((dist / 3.2) ** 2));
 };
-const DAY_PEAK: Record<number, number> = { 2: 86000, 3: 88200, 4: 89100, 5: 90400, 6: 92500 };
+const DAY_PEAK: Record<number, number> = { 2: 86000, 3: 88200, 4: 89100, 5: 90400, 6: 91800 };
 /** ALB requests per minute at time ts (every API request makes one fraud-svc call). */
 const demand = (ts: number) => (DAY_PEAK[new Date(ts).getUTCDate()] ?? 90000) * shape(ts);
 
@@ -63,8 +63,8 @@ const incident: Incident = {
     alert: {
       source: 'PagerDuty',
       title: '[ALARM] checkout-fraud-errors-high — FraudClientErrors > 500 per minute',
-      details: 'ShopFast/Checkout FraudClientErrors has been above 500/min for 5 consecutive minutes (current 7,9k). Runbook: https://wiki.shopfast.internal/runbooks/fraud-check',
-      minutesAgo: 52,
+      details: 'ShopFast/Checkout FraudClientErrors has been above 500/min for 5 consecutive minutes (current 2,341). Runbook: https://wiki.shopfast.internal/runbooks/fraud-check',
+      minutesAgo: 47,
     },
     reports: [
       { from: 'Jade Morales', role: 'Customer Support Lead', channel: '#incident-4290', message: 'Customers get "We couldn\'t verify your payment (fraud check unavailable), please try again" on checkout. It\'s instant, not a long spinner, and trying again usually works. Same thing happened last night around this time and the night before.', minutesAgo: 41 },
@@ -106,7 +106,7 @@ const incident: Incident = {
       healthCheck: { protocol: 'HTTP', path: '/health', port: 'traffic-port', intervalSec: 10, timeoutSec: 6, healthyThreshold: 3, unhealthyThreshold: 3, matcher: '200-399' },
       targets: ['10.0.12.71', '10.0.12.118', '10.0.12.164', '10.0.12.203'].map(ip => ({ id: ip, port: 8080, az: 'us-east-1a', state: 'healthy' as const })),
     });
-    env.http.unshift({ match: /fraud-svc\.internal\.shopfast\.io|10\.0\.12\.40|fraud-svc-nlb/, behaviour: 'ok', status: 200, headers: { 'Content-Type': 'application/json', 'X-Fraud-Version': '3.8.0' }, body: '{"status":"ok","service":"fraud-svc","version":"3.8.0","model":"risk-v42"}', timeMs: 4 });
+    env.http.unshift({ match: /fraud-svc\.internal\.shopfast\.io|10\.0\.12\.40|fraud-svc-nlb/, behaviour: 'ok', status: 200, headers: { 'Content-Type': 'application/json', 'X-Fraud-Version': '3.8.0' }, body: '{"status":"ok","service":"fraud-svc","build":"3.8.0","model":"risk-v42"}', timeMs: 4 });
 
     // ---------------- App hosts ----------------
     for (const [i, h] of APP_HOSTS.entries()) {
@@ -263,7 +263,7 @@ const incident: Incident = {
     // ---------------- Metrics (1-minute, last 3 h) ----------------
     const N = 180;
     const mins = Array.from({ length: N }, (_, k) => N - 1 - k); // minutesAgo per index
-    const jitter = (seed: number) => 1 + (((Math.sin(seed * 12.9898) * 43758.5453) % 1) - 0.5) * 0.04;
+    const jitter = (seed: number) => 1 + (((Math.sin(seed * 12.9898) * 43758.5453) % 1) - 0.5) * 0.025;
     const req = mins.map(m => Math.round(demand(at(m)) * jitter(m + 1)));
     const perHost = (h: string) => req.map(r => (r * SHARE[h]));
     const errs = mins.map((_, k) => Math.round(APP_HOSTS.reduce((s, h) => s + Math.max(0, perHost(h)[k] - CAP_HOST_PER_MIN), 0)));
@@ -291,7 +291,7 @@ const incident: Incident = {
     panel(env, 'alb.target5xx').featured = true;
     setPoints(env, 'app.checkoutLatency', series('elat', 410, { noise: 0.08 }).wave(0.04).round(0).build());
     setPoints(env, 'alb.latency', series('eal', 0.38, { noise: 0.08 }).wave(0.04).round(3).build());
-    for (const [i, h] of APP_HOSTS.entries()) setPoints(env, 'ec2.cpu', perHost(h).map((v, k) => Math.round((10 + v / 760 + i) * jitter(k + i * 11) * 10) / 10), h);
+    for (const [i, h] of APP_HOSTS.entries()) setPoints(env, 'ec2.cpu', perHost(h).map((v, k) => Math.round((10 + v / 900 + i) * jitter(k + i * 11) * 10) / 10), h);
     setPoints(env, 'nat.active', series('nat', 380, { noise: 0.1 }).round(0).build());
 
     // ---------------- Metrics (hourly, last 4 days) ----------------
@@ -304,7 +304,7 @@ const incident: Incident = {
     addPanel(env, { id: 'app.fraudErrors.4d', group: 'Application (ShopFast/Checkout)', namespace: 'ShopFast/Checkout', metric: 'FraudClientErrors (4 days)', resource: 'checkout-api', unit: 'Count', stat: 'Sum', periodMinutes: 60, featured: true, series: [{ name: 'checkout-api', points: hErr }] });
     addPanel(env, { id: 'nlb.newflows.4d', group: 'Network Load Balancer (fraud-svc)', namespace: 'AWS/NetworkELB', metric: 'NewFlowCount (4 days)', resource: `net/${NLB_NAME}/5f2a9c1e7b3d4a60`, unit: 'Count', stat: 'Sum', periodMinutes: 60, series: [{ name: NLB_NAME, points: hFlows }] });
 
-    env.alarms.push({ name: 'checkout-fraud-errors-high', state: 'ALARM', metric: 'FraudClientErrors', condition: 'Sum > 500 for 5 datapoints within 5 minutes', minutesAgo: 52, panelId: 'app.fraudErrors' });
+    env.alarms.push({ name: 'checkout-fraud-errors-high', state: 'ALARM', metric: 'FraudClientErrors', condition: 'Sum > 500 for 5 datapoints within 5 minutes', minutesAgo: 47, panelId: 'app.fraudErrors' });
 
     // ---------------- Logs ----------------
     const clientIps = ['10.0.0.71', '10.0.1.163', '10.0.0.204', '10.0.1.38'];
@@ -328,7 +328,7 @@ const incident: Incident = {
         if (m > 75) continue;
         const over = Math.max(0, perHost(h)[idx] - CAP_HOST_PER_MIN) / perHost(h)[idx];
         const n = Math.round(over * 50);
-        for (let j = 0; j < n; j++) emit(at(m) + Math.floor(((j + 0.5) / n) * 60000), k++, j % 3 === 0);
+        for (let j = 0; j < n; j++) emit(at(m) - 60000 + Math.floor(((j + 0.5) / n) * 60000), k++, j % 3 === 0);
       }
       // last night, same time window
       for (let j = 0; j < 12; j++) emit(at(1440 + 60 - j * 7.3 - i), k++, j % 2 === 0);
@@ -398,7 +398,7 @@ const incident: Incident = {
   ],
 
   rootCauses: [
-    { id: 'rc-tw-exhaustion', correct: true, text: 'checkout-api 2.16.0 opens a new non-keep-alive connection per fraud call; each leaves 60 s of TIME-WAIT on the app host, exhausting the 28,232 ports to 10.0.12.40:8080 at peak (EADDRNOTAVAIL).', explanation: 'Explains why it is rate-dependent (TIME-WAIT count = new connections/s × 60 s), why errors are instant (local connect() failure), why fraud-svc sees nothing, and why it began with the Oct 4 deploy.' },
+    { id: 'rc-tw-exhaustion', correct: true, text: 'checkout-api 2.16.0 opens a new non-keep-alive connection per fraud call; each leaves 60 s of TIME-WAIT, exhausting the 28,232 local ports to 10.0.12.40:8080 at peak (EADDRNOTAVAIL).', explanation: 'Explains why it is rate-dependent (TIME-WAIT count = new connections/s × 60 s), why errors are instant (local connect() failure), why fraud-svc sees nothing, and why it began with the Oct 4 deploy.' },
     { id: 'rc-port-range', partial: true, text: 'net.ipv4.ip_local_port_range (32768–60999) is too narrow for ~470 new connections/s per host to 10.0.12.40:8080, so the app hosts run out of ephemeral ports at evening peak.', explanation: 'Correct mechanism, wrong culprit: the port range is the default and was fine for years. The connection rate exploded because 2.16.0 stopped reusing connections; widening the range only moves the ceiling.' },
     { id: 'rc-fraud-svc', text: 'fraud-service 3.8.0 (risk model v42) costs more CPU per score; at evening peak its 4 tasks saturate and fraud-svc-nlb starts refusing new connections from checkout-api.', explanation: 'fraud-svc p99 is flat at 18 ms, all targets are healthy, the NLB does not refuse connections when targets are busy, and the errors began two days before 3.8.0 shipped.' },
     { id: 'rc-nofile', text: 'Leaked fraud-svc sockets push checkout-api to its LimitNOFILE=65535 at peak, so new connect() calls fail until the garbage collector closes the leaked file descriptors.', explanation: 'Running out of file descriptors produces EMFILE ("too many open files") in socket(), not EADDRNOTAVAIL in connect(). TIME-WAIT sockets are kernel-owned and hold no file descriptor.' },
@@ -409,13 +409,13 @@ const incident: Incident = {
   fixes: [
     { id: 'fx-pool', kind: 'correct', text: 'Roll back to 2.15.4 (or hotfix) so fraud calls share one keep-alive undici Pool per process and reuse a few dozen connections instead of one per call.', explanation: 'Removes the cause: with pooled keep-alive connections the app hosts open a handful of new connections per minute instead of ~470 per second. TIME-WAIT drops back to a few hundred.' },
     { id: 'fx-retry', kind: 'correct', text: 'Fix FRAUD-212 properly: keep the pool, expire idle sockets well before the NLB\'s 350 s idle timeout, and retry idempotent fraud calls once on ECONNRESET.', explanation: 'The original problem (stale sockets after target deregistration) is real and has a standard fix: idle-socket expiry below the load balancer\'s idle timeout plus a single retry for idempotent requests — not abandoning connection reuse.' },
-    { id: 'fx-port-range', kind: 'partial', text: 'Widen net.ipv4.ip_local_port_range to 1024–65000 and set net.ipv4.tcp_tw_reuse=1 on app-1..3 via /etc/sysctl.d/90-ports.conf.', explanation: 'Buys headroom: ~2.3× more ports, and tcp_tw_reuse=1 lets outgoing connects reuse a TIME-WAIT port once 1 s has passed (safe thanks to TCP timestamps). A useful stop-gap, but the app still opens a connection per call.' },
+    { id: 'fx-port-range', kind: 'partial', text: 'Widen net.ipv4.ip_local_port_range to 1024–65000 and set net.ipv4.tcp_tw_reuse=1 on app-1..3 via /etc/sysctl.d/90-ports.conf, then sysctl --system.', explanation: 'Buys headroom: ~2.3× more ports, and tcp_tw_reuse=1 lets outgoing connects reuse a TIME-WAIT port once 1 s has passed (safe thanks to TCP timestamps). A useful stop-gap, but the app still opens a connection per call.' },
     { id: 'fx-scale-asg', kind: 'partial', text: 'Raise shopfast-checkout-asg desired capacity from 3 to 5 so each app host opens fewer new connections per second to 10.0.12.40:8080.', explanation: 'Works as a mitigation — the 28k-port budget is per host, so 5 hosts stay under ~470/s each — but you pay for idle capacity to hide a client bug.' },
     { id: 'fx-nlb-az', kind: 'partial', text: 'Enable fraud-svc-nlb in us-east-1b too, so fraud-svc.internal.shopfast.io returns two IPs and clients spread their connections over both.', explanation: 'The limit is per destination ip:port, so a second NLB IP roughly doubles the budget (and adds AZ resilience). Headroom, not a fix.' },
-    { id: 'fx-recycle', kind: 'harmful', text: 'Set net.ipv4.tcp_tw_recycle=1 on app-1..3 so TIME-WAIT sockets are recycled immediately instead of after 60 seconds.', explanation: 'tcp_tw_recycle was removed in Linux 4.12 (sysctl: cannot stat …). Where it existed it dropped SYNs from clients behind NAT whose timestamps were not monotonic — it broke real users. Never use it.' },
-    { id: 'fx-fin-timeout', kind: 'neutral', text: 'Lower net.ipv4.tcp_fin_timeout from 60 to 15 on app-1..3 so closed fraud-svc sockets leave TIME-WAIT four times faster.', explanation: 'tcp_fin_timeout governs FIN-WAIT-2 for orphaned sockets. TIME-WAIT on Linux is fixed at 60 s (TCP_TIMEWAIT_LEN); this changes nothing here.' },
+    { id: 'fx-recycle', kind: 'harmful', text: 'Set net.ipv4.tcp_tw_recycle=1 in /etc/sysctl.d on app-1..3 so TIME-WAIT sockets to fraud-svc are recycled immediately instead of after 60 seconds.', explanation: 'tcp_tw_recycle was removed in Linux 4.12 (sysctl: cannot stat …). Where it existed it dropped SYNs from clients behind NAT whose timestamps were not monotonic — it broke real users. Never use it.' },
+    { id: 'fx-fin-timeout', kind: 'neutral', text: 'Lower net.ipv4.tcp_fin_timeout from 60 to 15 on app-1..3 so closed fraud-svc sockets leave TIME-WAIT four times faster and free their ports.', explanation: 'tcp_fin_timeout governs FIN-WAIT-2 for orphaned sockets. TIME-WAIT on Linux is fixed at 60 s (TCP_TIMEWAIT_LEN); this changes nothing here.' },
     { id: 'fx-scale-fraud', kind: 'neutral', text: 'Scale the fraud-svc ECS service from 4 to 8 tasks behind fraud-svc-nlb to absorb the evening peak of score and signal requests.', explanation: 'The client sees one destination, 10.0.12.40:8080, no matter how many targets sit behind the NLB — the port budget does not change. fraud-svc was never the bottleneck.' },
-    { id: 'fx-restart', kind: 'harmful', text: 'Rolling-restart checkout-api on app-1..3 to close the leaked fraud-svc sockets and release their ephemeral ports.', explanation: 'TIME-WAIT sockets belong to the kernel, not the process, and survive the restart. Taking one host out at peak pushes the other two further past ~470 connections/s, so errors go up.' },
+    { id: 'fx-restart', kind: 'harmful', text: 'Rolling-restart checkout-api on app-1..3, one host at a time, to close the leaked fraud-svc sockets and release their ephemeral ports to the kernel.', explanation: 'TIME-WAIT sockets belong to the kernel, not the process, and survive the restart. Taking one host out at peak pushes the other two further past ~470 connections/s, so errors go up.' },
   ],
 
   hints: [
@@ -438,7 +438,7 @@ fraud-service 3.8.0 (17:20) and \`tcp_fin_timeout\` were distractions: the first
       { minutesAgo: 1440 + 70, event: 'Oct 5 evening peak: same errors, healed by ~22:00' },
       { minutesAgo: 155, event: 'fraud-service 3.8.0 deployed (red herring)' },
       { minutesAgo: 67, event: 'Request rate crosses ~470 new connections/s per host; TIME-WAIT hits ~28.2k' },
-      { minutesAgo: 52, event: 'checkout-fraud-errors-high pages on-call' },
+      { minutesAgo: 47, event: 'checkout-fraud-errors-high pages on-call' },
     ],
     concepts: [
       { title: 'The TCP 4-tuple and ephemeral ports', body: 'A TCP connection is identified by (source IP, source port, destination IP, destination port). For outgoing connections the kernel picks the source port from `net.ipv4.ip_local_port_range` (default 32768–60999 = 28,232 ports). Since Linux 4.x the same local port can be reused for *different* destinations, so the budget is per destination ip:port — and an NLB with a single IP is a single destination, however many targets sit behind it.' },

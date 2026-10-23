@@ -52,7 +52,17 @@ export function aws(ctx: Ctx, raw: string): string {
   const env = ctx.env;
   for (const o of env.awsCli) if (o.match.test(raw)) return o.output;
 
-  const argv = tokenize(raw).slice(1);
+  // list-valued options (--action-names a b c) take every token up to the next --option
+  const argv0 = tokenize(raw).slice(1);
+  const argv: string[] = [];
+  for (let i = 0; i < argv0.length; i++) {
+    argv.push(argv0[i]);
+    if (argv0[i] === '--action-names' || argv0[i] === '--resource-arns' || argv0[i] === '--instance-ids' || argv0[i] === '--group-ids') {
+      const vals: string[] = [];
+      while (i + 1 < argv0.length && !argv0[i + 1].startsWith('--')) vals.push(argv0[++i]);
+      argv.push(vals.join(' '));
+    }
+  }
   const a = parseArgs(argv, [
     'region', 'output', 'query', 'instance-ids', 'group-ids', 'filters', 'target-group-arn', 'names', 'load-balancer-arn', 'db-instance-identifier', 'role-name', 'policy-name', 'policy-arn',
     'lookup-attributes', 'max-results', 'max-items', 'hosted-zone-id', 'auto-scaling-group-name', 'auto-scaling-group-names', 'state-value', 'log-group-name', 'filter-pattern', 'since', 'start-time',
@@ -212,7 +222,7 @@ export function aws(ctx: Ctx, raw: string): string {
         events = events.filter(e => (key === 'EventName' ? e.eventName === val : key === 'Username' ? e.user.includes(val) : key === 'ResourceName' ? e.resources.includes(val) : key === 'EventSource' ? e.eventSource === val : true));
       }
       const max = Number(a.opts['max-results'] ?? a.opts['max-items'] ?? 20);
-      return j({ Events: events.slice(0, max).map(e => ({ EventId: `${e.eventName.length}f3a${e.minutesAgo}-9b1c-4e2d-8a7f-${String(e.minutesAgo).padStart(12, '0')}`, EventName: e.eventName, EventTime: isoSec(env.now - e.minutesAgo * MIN), EventSource: e.eventSource, Username: e.user, Resources: [{ ResourceName: e.resources }], CloudTrailEvent: JSON.stringify({ sourceIPAddress: e.sourceIp, userIdentity: { arn: e.user }, ...(e.errorCode ? { errorCode: e.errorCode } : {}), requestParameters: e.request ?? null }) })) });
+      return j({ Events: events.slice(0, max).map(e => ({ EventId: `${e.eventName.length}f3a${Math.round(e.minutesAgo * 60)}-9b1c-4e2d-8a7f-${String(Math.round(e.minutesAgo * 60)).padStart(12, '0')}`, EventName: e.eventName, EventTime: isoSec(env.now - e.minutesAgo * MIN), EventSource: e.eventSource, Username: e.user, Resources: [{ ResourceName: e.resources }], CloudTrailEvent: JSON.stringify({ sourceIPAddress: e.sourceIp, userIdentity: { arn: e.user }, ...(e.errorCode ? { errorCode: e.errorCode } : {}), requestParameters: e.request ?? null }) })) });
     }
     case 'route53 list-hosted-zones':
       return j({ HostedZones: env.route53.zones.map(z => ({ Id: `/hostedzone/${z.id}`, Name: z.name + '.', Config: { PrivateZone: z.private }, ResourceRecordSetCount: z.records.length })) });
@@ -229,7 +239,9 @@ export function aws(ctx: Ctx, raw: string): string {
       const bucket = target.replace('s3://', '').split('/')[0];
       if (role && evaluate(role, 's3:ListBucket', `arn:aws:s3:::${bucket}`).decision !== 'allowed' && !role.policies.some(p => p.name === 'ReadOnlyAccess'))
         return `An error occurred (AccessDenied) when calling the ListObjectsV2 operation: User: ${callerArn(env, ctx.host.name)} is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::${bucket}" because no identity-based policy allows the s3:ListBucket action`;
-      return ['                           PRE 2026/', '2026-10-09 14:31:12      48211 2026/10/09/INV-2026-1009-00412.pdf'].join('\n');
+      const d = isoSec(env.now - 21 * MIN);
+      const ymd = d.slice(0, 10);
+      return ['                           PRE 2026/', `${ymd} ${d.slice(11, 19)}      48211 ${ymd.replace(/-/g, '/')}/INV-${ymd.replace(/-/g, '')}-00412.pdf`].join('\n');
     }
     case 's3 cp': {
       const [src, dst] = rest;

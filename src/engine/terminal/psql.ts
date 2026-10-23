@@ -183,7 +183,13 @@ function activity(db: Database, lower: string): string {
   if (userEq) rows = rows.filter(r => r.usename.toLowerCase() === userEq[1]);
 
   if (/count\(\*\)/.test(lower)) {
-    const grp = lower.match(/group\s+by\s+([\w_, ]+)/)?.[1]?.split(',').map(s => s.trim()) ?? [];
+    const selectCols = (lower.match(/select\s+(.*?)\s+from/)?.[1] ?? '').split(',').map(c => c.trim()).filter(c => !/count\(/.test(c));
+    const grpRaw = lower.match(/group\s+by\s+(.+?)(\s+(order|having|limit)\b|$)/)?.[1] ?? '';
+    const grp = grpRaw
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(g => (/^\d+$/.test(g) ? selectCols[Number(g) - 1] ?? g : g));
     if (!grp.length) return pgTable(['count'], [[rows.length]]);
     const keyOf = (r: Database['activity'][number], g: string) => (g === 'state' ? r.state : g === 'usename' ? r.usename : g === 'application_name' ? r.application : g === 'client_addr' ? r.client : g === 'wait_event' ? r.waitEvent.split(': ')[1] ?? '' : g === 'wait_event_type' ? r.waitEvent.split(': ')[0] ?? '' : '');
     const counts = new Map<string, number>();

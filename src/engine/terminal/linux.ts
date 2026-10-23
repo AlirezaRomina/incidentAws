@@ -319,9 +319,18 @@ export function iostat(ctx: Ctx): string {
   ].join('\n');
 }
 
+/** boot time derived from the host's `uptime` string ("12 days,  4:11" / "3:07" / "41 min") */
+function bootTime(ctx: Ctx): number {
+  const u = ctx.host.uptime;
+  const days = Number(u.match(/(\d+)\s+days?/)?.[1] ?? 0);
+  const hm = u.match(/(\d+):(\d+)/);
+  const mins = Number(u.match(/(\d+)\s+min/)?.[1] ?? 0);
+  return ctx.env.now - (days * 1440 + (hm ? Number(hm[1]) * 60 + Number(hm[2]) : 0) + mins) * 60000;
+}
+
 export function dmesg(ctx: Ctx, args: string[]): string {
   const human = args.some(a => a.includes('T'));
-  const bootTs = ctx.env.now - 12 * 86400000 - 4 * 3600000 - 11 * 60000;
+  const bootTs = bootTime(ctx);
   return ctx.host.dmesg
     .map(l => {
       if (!human) return l;
@@ -386,6 +395,12 @@ export function systemctl(ctx: Ctx, args: string[]): string {
 }
 
 export function journalctl(ctx: Ctx, args: string[]): string {
+  if (args.includes('-k') || args.includes('--dmesg')) {
+    return dmesg(ctx, ['-T'])
+      .split('\n')
+      .map(l => l.replace(/^\[\w{3} (\w{3}) +(\d+) ([\d:]+) \d{4}\] /, (_m, mon, d, t) => `${mon} ${String(d).padStart(2, '0')} ${t} ${ctx.host.hostname} kernel: `))
+      .join('\n');
+  }
   const a = parseArgs(args, ['u', 'n', 'since', 'p', 'unit', 'lines']);
   const unit = a.opts.u ?? a.opts.unit;
   const n = Number(a.opts.n ?? a.opts.lines ?? (a.flags.has('e') ? 40 : 200));

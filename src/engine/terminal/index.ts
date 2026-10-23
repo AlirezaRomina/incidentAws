@@ -79,6 +79,10 @@ export function execute(env: Environment, state: TermState, rawLine: string): Te
   const ctx: Ctx = { env, host, cwd: state.cwd };
   let result: TermResult;
 
+  // an override may target the whole pipeline (e.g. `ss -tan | grep -c TIME-WAIT`) or just the first command
+  const fullLine = line.replace(/^sudo\s+(-\w+\s+)*/, '');
+  const whole = segments.length > 1 ? host.commandOverrides.find(o => o.match.test(fullLine)) : undefined;
+  if (whole) return { output: typeof whole.output === 'function' ? whole.output(fullLine) : whole.output, state };
   const override = host.commandOverrides.find(o => o.match.test(first));
   if (override) {
     result = { output: typeof override.output === 'function' ? override.output(first) : override.output, state };
