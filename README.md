@@ -12,9 +12,11 @@ Everything runs locally in the browser. There's no backend, no account and no pa
 
 ## Quick start
 
-Requires Node.js 18+.
+Requires [Node.js](https://nodejs.org) 18 or newer.
 
 ```bash
+git clone <this-repo-url> incident
+cd incident
 npm start
 ```
 
@@ -64,7 +66,7 @@ investigations, including terminal history) is saved in `localStorage`. You can 
 | # | Level | Incident | Topics |
 |---|---|---|---|
 | 1 | Beginner | Checkout errors from one server | Linux disk, logging, nginx |
-| 2 | Beginner | Whole site returns 503 | ALB target health, security groups, Terraform |
+| 2 | Beginner | The whole site is down behind the load balancer | ALB target health, security groups, Terraform |
 | 3 | Beginner | API unreachable after a migration | DNS, CNAME vs Alias, TTLs |
 | 4 | Intermediate | Checkout API is extremely slow | PostgreSQL indexes, EXPLAIN, migrations |
 | 5 | Intermediate | Intermittent 502s | Memory leaks, OOM killer, systemd |
@@ -75,6 +77,12 @@ investigations, including terminal history) is saved in `localStorage`. You can 
 | 10 | Advanced | Errors only at peak | Ephemeral ports, TIME_WAIT, keep-alive |
 | 11 | Expert | DB slow every night | gp2 burst balance, IOPS, storage types |
 | 12 | Expert | Random DNS failures at peak | VPC resolver limits, ENA allowances, DNS caching |
+
+## Where the cases come from
+
+* **Hand-written, not random.** There are 12 fixed scenarios. Every log line, metric and command output comes from a fixed seed, so a case looks identical on every replay and scores are comparable.
+* **Based on real failure modes.** Each case is a common class of production failure: logs filling a disk, a firewall rule changed by an infrastructure refactor, an index dropped by a migration, the OOM killer, an over-tight IAM policy, a deleted NAT gateway, replica lag, port exhaustion, storage burst credits, DNS rate limits. The company, people and numbers are fictional. Log formats, CLI output, AWS error messages and system behaviour follow the real systems.
+* **Graded by rules, not by AI.** Each case has an answer key: the correct root cause, key evidence, decoys, and fixes rated correct, partial, pointless or harmful. Your submission is compared with the key using the rules above. It all runs in your browser and nothing is sent anywhere.
 
 ## Project structure
 
@@ -97,6 +105,7 @@ src/
   components/        React UI: board, workspace, tools, submit wizard, debrief
 tests/               grading, terminal and per-incident integrity tests
 docs/AUTHORING.md    how to write a new incident
+.claude/agents/      Claude Code agent that writes new incidents (incident-author)
 ```
 
 Every incident starts from the same healthy environment and changes it in `build()`. Because
@@ -107,10 +116,20 @@ that a perfect investigation earns an S.
 
 ## Adding an incident
 
-See [docs/AUTHORING.md](docs/AUTHORING.md). In short: create `src/incidents/my-incident.ts`,
-register it in `src/incidents/index.ts`, and iterate with:
+**With Claude Code:** the repo includes an `incident-author` agent
+([.claude/agents/incident-author.md](.claude/agents/incident-author.md)). Ask, for example:
+*"Use the incident-author agent to create a case where the ALB's TLS certificate expired."*
+It writes the scenario, registers it, and runs the integrity checks.
+
+**By hand:** see [docs/AUTHORING.md](docs/AUTHORING.md). In short: create
+`src/incidents/my-incident.ts`, register it in `src/incidents/index.ts`, and iterate with:
 
 ```bash
 INCIDENT_FILE=src/incidents/my-incident.ts npx vitest run tests/incidents.integrity.test.ts
 npx tsx scripts/try.ts src/incidents/my-incident.ts "ssh app-2" "df -h"
 ```
+
+## Tech
+
+Vite, React 18 and TypeScript, with hand-rolled SVG charts and a custom terminal component. Tests
+use Vitest. There is no backend: all data is seeded in TypeScript and progress lives in `localStorage`.
