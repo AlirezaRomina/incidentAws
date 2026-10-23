@@ -76,35 +76,35 @@ export function HowItWorks({ onClose, onStartTutorial, initialTab = 'play' }: { 
                   <td>
                     <b>Root cause</b>
                   </td>
-                  <td className="mono">45%</td>
+                  <td className="mono" style={{ whiteSpace: 'nowrap' }}>45%</td>
                   <td>Pick the correct explanation. One "close but incomplete" option earns 20%.</td>
                 </tr>
                 <tr>
                   <td>
                     <b>Evidence</b>
                   </td>
-                  <td className="mono">30%</td>
+                  <td className="mono" style={{ whiteSpace: 'nowrap' }}>30%</td>
                   <td>Submit pins that prove each <i>key</i> fact. Supporting facts count half. Every decoy you submit costs 5%. Pins unrelated to the incident cost nothing.</td>
                 </tr>
                 <tr>
                   <td>
                     <b>Fix</b>
                   </td>
-                  <td className="mono">25%</td>
+                  <td className="mono" style={{ whiteSpace: 'nowrap' }}>25%</td>
                   <td>Tick all the correct actions (usually an immediate fix plus a prevention). Partly helpful ones count half. Harmful −8%, pointless −3%.</td>
                 </tr>
                 <tr>
                   <td>
                     <b>Hints</b>
                   </td>
-                  <td className="mono">−10% each</td>
+                  <td className="mono" style={{ whiteSpace: 'nowrap' }}>−10% each</td>
                   <td>Up to 3 per case, in Case Notes → Hints.</td>
                 </tr>
                 <tr>
                   <td>
                     <b>Speed bonus</b>
                   </td>
-                  <td className="mono">up to +10%</td>
+                  <td className="mono" style={{ whiteSpace: 'nowrap' }}>up to +10%</td>
                   <td>Only with the correct root cause. Full bonus at or under the par time, shrinking to 0 at 3× par.</td>
                 </tr>
               </tbody>
